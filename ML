@@ -1,0 +1,230 @@
+# 8 KMeans
+import pandas as pd
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler
+from sklearn.datasets import load_wine
+from sklearn.metrics import completeness_score, silhouette_score, calinski_harabasz_score
+
+wine = load_wine()
+X = pd.DataFrame(wine.data, columns=wine.feature_names)
+y = wine.target
+
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+k = 3
+kmeans = KMeans(n_clusters=k, n_init=10, random_state=42)
+kmeans.fit(X_scaled)
+
+centroids = kmeans.cluster_centers_
+labels = kmeans.labels_
+
+completeness = completeness_score(y, labels)
+silhouette_avg = silhouette_score(X_scaled, labels)
+calinski_harabasz = calinski_harabasz_score(X_scaled, labels)
+
+print(f'Silhouette Coefficient: {silhouette_avg:.2f}')
+print(f'Calinski-Harabasz Index: {calinski_harabasz:.2f}')
+print(f'Completeness: {completeness:.2f}')
+
+
+
+
+# 9 Hierarchical Clustering (Iris dataset)
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import StandardScaler
+from sklearn.datasets import load_iris
+from sklearn.metrics import completeness_score, silhouette_score, calinski_harabasz_score
+import scipy.cluster.hierarchy as sch
+import matplotlib.pyplot as plt
+
+iris = load_iris()
+X = pd.DataFrame(iris.data, columns=iris.feature_names)
+y = iris.target
+
+data = pd.concat([X, pd.Series(y, name='species')], axis=1)
+sample = data.groupby('species').apply(lambda x: x.sample(10, random_state=42)).reset_index(drop=True)
+
+X_sample = sample.drop(columns='species')
+y_sample = sample['species']
+
+scaler = StandardScaler()
+X_sample_scaled = scaler.fit_transform(X_sample)
+
+linked = sch.linkage(X_sample_scaled, method='ward')
+num_clusters = 3
+labels = sch.fcluster(linked, num_clusters, criterion='maxclust')
+
+completeness = completeness_score(y_sample, labels)
+silhouette = silhouette_score(X_sample_scaled, labels)
+calinski_harabasz = calinski_harabasz_score(X_sample_scaled, labels)
+
+print(f"Number of clusters: {num_clusters}")
+print(f"Completeness Score: {completeness:.2f}")
+print(f"Silhouette Score: {silhouette:.2f}")
+print(f"Calinski-Harabasz Score: {calinski_harabasz:.2f}")
+
+species_colors = {i: color for i, color in enumerate(plt.cm.tab10(np.linspace(0, 1, len(np.unique(y_sample)))))}
+
+plt.figure(figsize=(12, 8))
+dendrogram = sch.dendrogram(
+    linked,
+    orientation='top',
+    labels=y_sample.values,
+    distance_sort='descending',
+    show_leaf_counts=True
+)
+
+plt.title('Dendrogram of Hierarchical Clustering on Sample')
+plt.xlabel('Sample Index / Species')
+plt.ylabel('Euclidean Distance')
+plt.show()
+
+
+
+#7 Decision Tree (Breast Cancer dataset)
+from sklearn.datasets import load_breast_cancer
+from sklearn.model_selection import train_test_split
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.metrics import accuracy_score, classification_report
+from sklearn import tree
+import matplotlib.pyplot as plt
+
+data = load_breast_cancer()
+X = data.data
+y = data.target
+
+print("Feature names:", data.feature_names)
+print("Class names:", data.target_names)
+print("First two rows of the dataset:")
+print(X[:2])
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+
+clf = DecisionTreeClassifier()
+clf.fit(X_train, y_train)
+
+y_pred = clf.predict(X_test)
+accuracy = accuracy_score(y_test, y_pred)
+
+print("Accuracy:", accuracy)
+print("Classification Report:")
+print(classification_report(y_test, y_pred, target_names=data.target_names))
+
+plt.figure(figsize=(20,10))
+tree.plot_tree(clf, feature_names=data.feature_names, class_names=data.target_names, filled=True)
+plt.show()
+
+
+#6   Logistic Regression (Breast Cancer dataset)
+import pandas as pd
+from sklearn.datasets import load_breast_cancer
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report, roc_curve, roc_auc_score
+import matplotlib.pyplot as plt
+
+cancer = load_breast_cancer()
+X = pd.DataFrame(cancer.data, columns=cancer.feature_names)
+y = cancer.target
+
+print("First few rows of the Breast Cancer dataset:")
+print(X.head(1))
+print("\nTarget variable distribution:")
+print(pd.Series(y).value_counts())
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+model = LogisticRegression(max_iter=10000)
+model.fit(X_train_scaled, y_train)
+
+y_pred = model.predict(X_test_scaled)
+y_prob = model.predict_proba(X_test_scaled)[:, 1]
+
+print("\nModel Evaluation:")
+print(f"Accuracy: {accuracy_score(y_test, y_pred):.2f}")
+print("\nConfusion Matrix:\n", confusion_matrix(y_test, y_pred))
+print("\nClassification Report:\n", classification_report(y_test, y_pred))
+
+fpr, tpr, thresholds = roc_curve(y_test, y_prob)
+auc = roc_auc_score(y_test, y_prob)
+
+plt.figure()
+plt.plot(fpr, tpr, color='darkorange', lw=2, label=f'ROC curve (area = {auc:.2f})')
+plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
+plt.xlim([0.0, 1.0])
+plt.ylim([0.0, 1.05])
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.title('Receiver Operating Characteristic (ROC)')
+plt.legend(loc="lower right")
+plt.show()
+
+#5 SVM
+
+# Import necessary libraries
+import pandas as pd
+from sklearn.datasets import load_wine
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.svm import SVC
+from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, recall_score, f1_score
+
+# Load the wine dataset from sklearn
+wine = load_wine()
+X = pd.DataFrame(wine.data, columns=wine.feature_names)
+y = pd.Series(wine.target)
+
+# Display basic dataset info
+print("Dataset shape:", X.shape)
+print("\nFeature names:", wine.feature_names)
+print("\nTarget classes:", wine.target_names)
+
+# Standardize features
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+# Split into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(
+    X_scaled, y, test_size=0.3, random_state=42
+)
+
+# Initialize and train the SVM model
+model = SVC(kernel='rbf', gamma='scale', C=1.0, class_weight='balanced', probability=True)
+model.fit(X_train, y_train)
+
+# Make predictions
+y_pred = model.predict(X_test)
+
+# Calculate and print accuracy
+accuracy = accuracy_score(y_test, y_pred)
+print(f"\nAccuracy: {accuracy:.4f}")
+
+# Confusion Matrix
+print("\nConfusion Matrix:")
+cm = confusion_matrix(y_test, y_pred)
+print(cm)
+
+# Precision, Recall, F1 Score
+precision = precision_score(y_test, y_pred, average=None)
+recall = recall_score(y_test, y_pred, average=None)
+f1 = f1_score(y_test, y_pred, average=None)
+
+print("\nPrecision for each class:")
+for i, p in enumerate(precision):
+    print(f"Class {wine.target_names[i]}: {p:.4f}")
+
+print("\nRecall for each class:")
+for i, r in enumerate(recall):
+    print(f"Class {wine.target_names[i]}: {r:.4f}")
+
+print("\nF1 Score for each class:")
+for i, f in enumerate(f1):
+    print(f"Class {wine.target_names[i]}: {f:.4f}")
+ 
